@@ -1,0 +1,85 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<sys/wait.h>
+#include<sys/types.h>
+#include<string.h>
+#include<unistd.h>
+#include<ctype.h>
+int main()
+{
+   int i;
+   int fd1[2],fd2[2];
+   pid_t p;
+   if( (pipe(fd1)==-1) || (pipe(fd2)==-1))
+   {
+      printf("Pipe is not created successfully\n");
+      exit(0);
+   }
+   p = fork();
+   if(p>0)
+   {
+      char result[10],file[50];
+      close(fd1[0]);
+      close(fd2[1]);
+      printf("Parent process ID:%d\n",getpid());
+      printf("Enter the message:");
+      scanf("%s",file);
+      write(fd1[1],file,strlen(file)+1);
+      printf("Writing the message in the pipe 1\n");
+      close(fd1[1]);
+      int byte = read(fd2[0],result,sizeof(result)-1);
+      if(byte>0)
+      {
+         result[byte]='\0';
+      }
+      close(fd2[0]);
+      printf("Given message %s is %s\n",file,result);
+      wait(NULL);
+   }
+   else if(p==0)
+   {
+      close(fd1[1]);
+      close(fd2[0]);
+      char rece_data[50];
+      char result[10];
+      int len=0,digit=0,special=0;
+      int byte = read(fd1[0],rece_data,sizeof(rece_data)-1);
+      close(fd1[0]);
+      printf("child process ID:%d\n",getpid());
+      printf("Message is received\n");
+      if(byte>0)
+      {
+         rece_data[byte]='\0';
+         len=strlen(rece_data);
+      for(i=0;i<len;i++)
+      {
+         if(isdigit(rece_data[i]))
+         {
+            digit=1;
+         }
+         if((!isalpha(rece_data[i])) &&(!isspace(rece_data[i])) && (!isdigit(rece_data[i])))
+         {
+            special=1;
+         }
+      }
+      }
+      if(len>7 && digit==1 && special==1)
+      {
+         strcpy(result,"VALID");
+      }
+      else
+      {
+         strcpy(result,"INVALID");
+      }
+      write(fd2[1],result,strlen(result)+1);
+      printf("Writing is done in pipe 2\n");
+      close(fd2[1]);
+      exit(0);
+   }
+   else
+   {
+      perror("Fork Error\n");
+      exit(0);
+   }
+   return 0;
+}
