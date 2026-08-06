@@ -1,0 +1,63 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<sys/types.h>
+#include<sys/wait.h>
+#include<stdbool.h>
+bool ispower(int n)
+{
+   if(n<=0)
+   {
+      return false;
+   }
+   while(n%3==0)
+   {
+      n=n/3;
+   }
+   return n==1;
+}
+int main()
+{
+   int fd[2];
+   pid_t p;
+   if(pipe(fd)==-1)
+   {
+      perror("Pipe is not created\n");
+      exit(0);
+   }
+   p = fork();
+   if(p>0)
+   {
+      wait(NULL);
+      int rece_num;
+      close(fd[1]);
+      read(fd[0],&rece_num,sizeof(rece_num));
+      printf("Reading is done\n");
+      close(fd[0]);
+      if(ispower(rece_num))
+      {
+         printf("Given number %d is power of 3\n",rece_num);
+         exit(0);
+      }
+      else
+      {
+         printf("Given number %d is not a power of 3\n",rece_num);
+      }
+   }
+   else if(p==0)
+   {
+      int num;
+      close(fd[0]);
+      printf("Enter the number:");
+      scanf("%d",&num);
+      write(fd[1],&num,sizeof(num));
+      printf("Writing is done successfully\n");
+      close(fd[1]);
+      exit(0);
+   }
+   else
+   {
+      perror("Fork Error\n");
+      exit(0);
+   }
+}
